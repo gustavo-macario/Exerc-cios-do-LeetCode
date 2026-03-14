@@ -1,0 +1,70 @@
+-- [176] Second Highest Salary
+WITH salario AS (
+    SELECT salary, DENSE_RANK() OVER (ORDER BY salary DESC) AS ordem FROM Employee
+)
+SELECT MAX(salary) AS SecondHighestSalary FROM salario WHERE ordem = 2;
+
+-- [178] Rank Scores
+WITH ordem AS (
+    SELECT score, DENSE_RANK() OVER (ORDER BY score DESC) AS ordenado FROM Scores
+)
+SELECT score, ordenado AS 'rank' FROM ordem;
+
+-- [180] Consecutive Numbers
+WITH numeros AS (
+    SELECT num,
+    LAG(num, 1) OVER (ORDER BY id) AS ordem,
+    LAG(num, 2) OVER (ORDER BY id) AS ordem2
+    FROM Logs
+)
+SELECT DISTINCT num AS ConsecutiveNums FROM numeros 
+WHERE num = ordem AND num = ordem2;
+
+-- [184] Department Highest Salary
+WITH salarios AS (
+    SELECT DISTINCT d.id, d.name AS Department, e.name AS Employee, e.salary AS Salary,
+    DENSE_RANK() OVER (PARTITION BY d.id ORDER BY e.salary DESC) AS ordem
+    FROM Employee e 
+    JOIN Department d ON e.departmentId = d.id 
+)
+SELECT Department, Employee, Salary FROM salarios WHERE ordem = 1;
+
+-- [1068] Product Sales Analysis III
+WITH anos AS (
+    SELECT product_id, year AS first_year, quantity, price,
+    DENSE_RANK() OVER (PARTITION BY product_id ORDER BY year ASC) AS ordem 
+    FROM Sales
+)
+SELECT product_id, first_year, quantity, price FROM anos WHERE ordem = 1;
+
+-- [1158] Market Analysis I
+SELECT u.user_id AS buyer_id, u.join_date, 
+COUNT(CASE WHEN SUBSTR(o.order_date,1,4) = '2019' THEN o.order_date END) AS orders_in_2019 
+FROM Users u
+LEFT JOIN Orders o ON u.user_id = o.buyer_id  
+GROUP BY u.user_id, u.join_date;
+
+-- [1148] Capital Gain/Loss
+WITH vendas AS (
+    SELECT stock_name, SUM(price) AS sell FROM Stocks
+    WHERE operation = 'Sell'
+    GROUP BY stock_name    
+)
+SELECT s.stock_name, sell - SUM(price) AS capital_gain_loss FROM Stocks s
+JOIN vendas v ON s.stock_name = v.stock_name
+WHERE operation = 'Buy'
+GROUP BY s.stock_name;
+
+-- [1902] Count Salary Categories
+WITH ordenando AS (
+    SELECT 
+        COUNT(CASE WHEN income > 50000 THEN 1 END) AS High_Salary,
+        COUNT(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 END) AS Average_Salary,
+        COUNT(CASE WHEN income < 20000 THEN 1 END) AS Low_Salary
+    FROM Accounts
+)
+SELECT 'High Salary' AS category, High_Salary AS accounts_count FROM ordenando
+UNION ALL
+SELECT 'Average Salary', Average_Salary FROM ordenando 
+UNION ALL 
+SELECT 'Low Salary', Low_Salary FROM ordenando;
