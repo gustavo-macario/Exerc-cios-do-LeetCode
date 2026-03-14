@@ -4,11 +4,15 @@ WITH salario AS (
 )
 SELECT MAX(salary) AS SecondHighestSalary FROM salario WHERE ordem = 2;
 
+
+
 -- [178] Rank Scores
 WITH ordem AS (
     SELECT score, DENSE_RANK() OVER (ORDER BY score DESC) AS ordenado FROM Scores
 )
 SELECT score, ordenado AS 'rank' FROM ordem;
+
+
 
 -- [180] Consecutive Numbers
 WITH numeros AS (
@@ -20,6 +24,8 @@ WITH numeros AS (
 SELECT DISTINCT num AS ConsecutiveNums FROM numeros 
 WHERE num = ordem AND num = ordem2;
 
+
+
 -- [184] Department Highest Salary
 WITH salarios AS (
     SELECT DISTINCT d.id, d.name AS Department, e.name AS Employee, e.salary AS Salary,
@@ -29,6 +35,8 @@ WITH salarios AS (
 )
 SELECT Department, Employee, Salary FROM salarios WHERE ordem = 1;
 
+
+
 -- [1068] Product Sales Analysis III
 WITH anos AS (
     SELECT product_id, year AS first_year, quantity, price,
@@ -37,12 +45,16 @@ WITH anos AS (
 )
 SELECT product_id, first_year, quantity, price FROM anos WHERE ordem = 1;
 
+
+
 -- [1158] Market Analysis I
 SELECT u.user_id AS buyer_id, u.join_date, 
 COUNT(CASE WHEN SUBSTR(o.order_date,1,4) = '2019' THEN o.order_date END) AS orders_in_2019 
 FROM Users u
 LEFT JOIN Orders o ON u.user_id = o.buyer_id  
 GROUP BY u.user_id, u.join_date;
+
+
 
 -- [1148] Capital Gain/Loss
 WITH vendas AS (
@@ -54,6 +66,8 @@ SELECT s.stock_name, sell - SUM(price) AS capital_gain_loss FROM Stocks s
 JOIN vendas v ON s.stock_name = v.stock_name
 WHERE operation = 'Buy'
 GROUP BY s.stock_name;
+
+
 
 -- [1902] Count Salary Categories
 WITH ordenando AS (
@@ -68,3 +82,92 @@ UNION ALL
 SELECT 'Average Salary', Average_Salary FROM ordenando 
 UNION ALL 
 SELECT 'Low Salary', Low_Salary FROM ordenando;
+
+
+
+-- [1204] Last Person to Fit in the Bus
+-- Objetivo: Achar a última pessoa que pode entrar no ônibus sem exceder 1000kg.
+WITH fila AS (
+    SELECT person_name,
+    SUM(weight) OVER (ORDER BY turn) AS soma
+    FROM Queue
+)
+SELECT person_name FROM fila
+WHERE soma <= 1000
+ORDER BY soma DESC
+LIMIT 1;
+
+
+
+-- [1321] Restaurant Growth
+-- Objetivo: Calcular a média móvel de gastos dos últimos 7 dias.
+WITH soma_dia AS (
+    SELECT visited_on, SUM(amount) AS soma
+    FROM Customer
+    GROUP BY visited_on
+),
+total_c AS (
+    SELECT visited_on,
+    SUM(soma) OVER (ORDER BY visited_on ASC ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS soma_movel
+    FROM soma_dia
+)
+SELECT visited_on, 
+       soma_movel AS amount,
+       ROUND(soma_movel / 7, 2) AS average_amount 
+FROM total_c
+ORDER BY visited_on
+LIMIT 6, 1000000; -- Pula os primeiros 6 dias para garantir janela de 7 dias
+
+
+
+-- [3475] DNA Sequence Analysis
+-- Objetivo: Identificar padrões específicos em sequências de DNA.
+SELECT sample_id, dna_sequence, species, 
+       CASE WHEN dna_sequence LIKE 'ATG%' THEN 1 ELSE 0 END AS has_start,
+       CASE WHEN dna_sequence LIKE '%TAA' OR dna_sequence LIKE '%TAG' OR dna_sequence LIKE '%TGA' THEN 1 ELSE 0 END AS has_stop,
+       CASE WHEN dna_sequence LIKE '%ATAT%' THEN 1 ELSE 0 END AS has_atat,
+       CASE WHEN dna_sequence LIKE '%GGGG%' OR dna_sequence LIKE '%GGG%' THEN 1 ELSE 0 END AS has_ggg 
+FROM Samples;
+
+
+
+-- [3657] Customer Loyalty & Refund Rate
+-- Objetivo: Filtrar clientes com alta taxa de reembolso e tempo mínimo de casa.
+WITH clientes AS (
+    SELECT customer_id,
+           MIN(transaction_date) AS minimo,
+           MAX(transaction_date) AS maximo,
+           COUNT(CASE WHEN transaction_type = 'purchase' THEN transaction_id END) AS qtde_compras,
+           COUNT(CASE WHEN transaction_type = 'refund' THEN transaction_id END) AS qtde_refunds,
+           COUNT(transaction_id) AS qtde
+    FROM customer_transactions
+    GROUP BY customer_id
+),
+clientes_rate_20 AS (
+    SELECT customer_id, 
+           DATEDIFF(maximo, minimo) AS dias, 
+           ROUND(qtde_refunds / qtde, 2) AS rate 
+    FROM clientes
+    WHERE qtde_compras >= 3 AND DATEDIFF(maximo, minimo) >= 30
+)
+SELECT customer_id FROM clientes_rate_20
+WHERE rate < 0.2
+ORDER BY customer_id ASC;
+
+
+
+-- [3497] Trial to Paid Conversion Analysis
+-- Objetivo: Média de duração de trial e pago apenas para usuários que completaram ambos.
+SELECT user_id,
+       ROUND(AVG(CASE WHEN activity_type = 'free_trial' THEN activity_duration END), 2) AS trial_avg_duration,
+       ROUND(AVG(CASE WHEN activity_type = 'paid' THEN activity_duration END), 2) AS paid_avg_duration 
+FROM UserActivity ua
+WHERE EXISTS (
+    SELECT 1 FROM UserActivity ua2 
+    WHERE ua2.user_id = ua.user_id AND ua2.activity_type = 'free_trial'
+)
+AND EXISTS (
+    SELECT 1 FROM UserActivity ua3 
+    WHERE ua3.user_id = ua.user_id AND ua3.activity_type = 'paid'
+)
+GROUP BY user_id;
