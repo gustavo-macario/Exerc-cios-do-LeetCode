@@ -1,3 +1,15 @@
+-- [182] Duplicate Emails
+select distinct p.email from Person p
+
+where exists (
+    select 1
+    from person p2
+    where p.id != p2.id
+    and p.email = p2.email
+)
+
+
+
 -- [176] Second Highest Salary
 WITH salario AS (
     SELECT salary, DENSE_RANK() OVER (ORDER BY salary DESC) AS ordem FROM Employee
