@@ -253,3 +253,94 @@ SELECT transaction_date,
 FROM transactions
 GROUP BY transaction_date 
 ORDER BY transaction_date;
+
+
+
+-- Actor-Director Cooperation At Least 3 Times
+SELECT actor_id, director_id 
+FROM ActorDirector
+GROUP BY actor_id, director_id 
+HAVING COUNT(*) >= 3;
+
+
+
+-- Sales Analysis III (Exclusive Period)
+SELECT p.product_id, p.product_name 
+FROM Product p 
+JOIN Sales s ON p.product_id = s.product_id
+GROUP BY s.product_id
+HAVING MIN(s.sale_date) >= '2019-01-01' AND MAX(s.sale_date) <= '2019-03-31';
+
+
+
+-- Reformat Department Table (Manual Pivot)
+SELECT id,
+    SUM(CASE WHEN month = 'Jan' THEN revenue END) AS Jan_Revenue,
+    SUM(CASE WHEN month = 'Feb' THEN revenue END) AS Feb_Revenue,
+    SUM(CASE WHEN month = 'Mar' THEN revenue END) AS Mar_Revenue,
+    SUM(CASE WHEN month = 'Apr' THEN revenue END) AS Apr_Revenue,
+    SUM(CASE WHEN month = 'May' THEN revenue END) AS May_Revenue,
+    SUM(CASE WHEN month = 'Jun' THEN revenue END) AS Jun_Revenue,
+    SUM(CASE WHEN month = 'Jul' THEN revenue END) AS Jul_Revenue,
+    SUM(CASE WHEN month = 'Aug' THEN revenue END) AS Aug_Revenue,
+    SUM(CASE WHEN month = 'Sep' THEN revenue END) AS Sep_Revenue,
+    SUM(CASE WHEN month = 'Oct' THEN revenue END) AS Oct_Revenue,
+    SUM(CASE WHEN month = 'Nov' THEN revenue END) AS Nov_Revenue,
+    SUM(CASE WHEN month = 'Dec' THEN revenue END) AS Dec_Revenue 
+FROM Department 
+GROUP BY id;
+
+
+
+-- Bank Account Summary II
+SELECT u.name, SUM(amount) AS balance 
+FROM users u
+JOIN Transactions t ON u.account = t.account      
+GROUP BY u.account 
+HAVING balance > 10000;
+
+
+
+-- Daily Leads and Partners (Unique Counts)
+SELECT date_id, make_name, 
+       COUNT(DISTINCT lead_id) AS unique_leads, 
+       COUNT(DISTINCT partner_id) AS unique_partners 
+FROM DailySales 
+GROUP BY date_id, make_name 
+ORDER BY date_id ASC;
+
+
+
+-- Find Total Time Spent by Each Employee
+SELECT event_day AS day, emp_id, 
+       SUM(out_time) - SUM(in_time) AS total_time
+FROM Employees 
+GROUP BY event_day, emp_id;
+
+
+
+-- [07] Rearrange Products Table (Unpivot)
+SELECT product_id, 'store1' AS store, store1 AS price FROM products WHERE store1 IS NOT NULL
+UNION ALL
+SELECT product_id, 'store2', store2 FROM products WHERE store2 IS NOT NULL
+UNION ALL
+SELECT product_id, 'store3', store3 FROM products WHERE store3 IS NOT NULL;
+
+
+
+-- [08] Find Users with Valid E-mails (Regex Validation)
+SELECT user_id, email 
+FROM users
+WHERE email REGEXP '^[A-Za-z0-9_]+@[A-Za-z]+\\.com$'
+ORDER BY user_id;
+
+
+
+-- [09] Library Out-of-Stock Books (Inventory Logic)
+SELECT lb.book_id, lb.title, lb.author, lb.genre, lb.publication_year, 
+       COUNT(br.book_id) AS current_borrowers  
+FROM library_books lb
+JOIN borrowing_records br ON lb.book_id = br.book_id AND br.return_date IS NULL
+GROUP BY lb.book_id, lb.title, lb.author, lb.genre, lb.publication_year, lb.total_copies
+HAVING current_borrowers = lb.total_copies     
+ORDER BY current_borrowers DESC, lb.title ASC;
