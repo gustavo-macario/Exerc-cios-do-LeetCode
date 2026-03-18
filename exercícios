@@ -319,7 +319,7 @@ GROUP BY event_day, emp_id;
 
 
 
--- [07] Rearrange Products Table (Unpivot)
+-- Rearrange Products Table (Unpivot)
 SELECT product_id, 'store1' AS store, store1 AS price FROM products WHERE store1 IS NOT NULL
 UNION ALL
 SELECT product_id, 'store2', store2 FROM products WHERE store2 IS NOT NULL
@@ -328,7 +328,7 @@ SELECT product_id, 'store3', store3 FROM products WHERE store3 IS NOT NULL;
 
 
 
--- [08] Find Users with Valid E-mails (Regex Validation)
+-- Find Users with Valid E-mails (Regex Validation)
 SELECT user_id, email 
 FROM users
 WHERE email REGEXP '^[A-Za-z0-9_]+@[A-Za-z]+\\.com$'
@@ -336,7 +336,7 @@ ORDER BY user_id;
 
 
 
--- [09] Library Out-of-Stock Books (Inventory Logic)
+-- Library Out-of-Stock Books (Inventory Logic)
 SELECT lb.book_id, lb.title, lb.author, lb.genre, lb.publication_year, 
        COUNT(br.book_id) AS current_borrowers  
 FROM library_books lb
@@ -344,3 +344,86 @@ JOIN borrowing_records br ON lb.book_id = br.book_id AND br.return_date IS NULL
 GROUP BY lb.book_id, lb.title, lb.author, lb.genre, lb.publication_year, lb.total_copies
 HAVING current_borrowers = lb.total_copies     
 ORDER BY current_borrowers DESC, lb.title ASC;
+
+
+
+-- Last Login in 2020
+SELECT user_id, MAX(time_stamp) AS last_stamp           
+FROM logins 
+WHERE SUBSTR(time_stamp, 1, 4) = '2020'
+GROUP BY user_id;
+
+
+
+-- Employees With Missing Information
+SELECT e.employee_id FROM employees e
+WHERE e.employee_id NOT IN (SELECT s.employee_id FROM salaries s)
+UNION 
+SELECT s.employee_id FROM salaries s
+WHERE s.employee_id NOT IN (SELECT e.employee_id FROM employees e)
+ORDER BY employee_id ASC;
+
+
+
+-- Tree Node (Root, Inner, Leaf Classification)
+SELECT id,
+    CASE 
+        WHEN p_id IS NULL THEN 'Root'
+        WHEN id IN (SELECT p_id FROM tree) THEN 'Inner'
+        ELSE 'Leaf' 
+    END AS type
+FROM tree;
+
+
+
+-- Swap Salary (Single-pass Update)
+UPDATE salary
+SET sex = CASE 
+    WHEN sex = 'm' THEN 'f' 
+    WHEN sex = 'f' THEN 'm' 
+END;
+
+
+
+-- Investments in 2016 (Geospatial & Value Filtering)
+SELECT ROUND(SUM(tiv_2016), 2) AS tiv_2016
+FROM Insurance
+WHERE tiv_2015 IN (
+    SELECT tiv_2015 FROM Insurance 
+    GROUP BY tiv_2015 HAVING COUNT(*) > 1 
+)
+AND (lat, lon) IN (
+    SELECT lat, lon FROM Insurance 
+    GROUP BY lat, lon HAVING COUNT(*) = 1 
+);
+
+
+
+-- Seasonal Top Category (BI Analysis)
+WITH estacoes AS (
+    SELECT 
+        CASE 
+            WHEN SUBSTR(s.sale_date, 6, 2) IN ('12', '01', '02') THEN 'Winter'
+            WHEN SUBSTR(s.sale_date, 6, 2) BETWEEN '03' AND '05' THEN 'Spring'
+            WHEN SUBSTR(s.sale_date, 6, 2) BETWEEN '06' AND '08' THEN 'Summer'
+            WHEN SUBSTR(s.sale_date, 6, 2) BETWEEN '09' AND '11' THEN 'Fall'
+        END AS season,
+        p.category,
+        SUM(s.quantity) AS total_quantity,
+        SUM(s.quantity * s.price) AS total_revenue
+    FROM sales s
+    JOIN products p ON s.product_id = p.product_id
+    GROUP BY season, p.category
+),
+ordenando AS (
+    SELECT season, category, total_quantity, total_revenue,
+           ROW_NUMBER() OVER (
+               PARTITION BY season 
+               ORDER BY total_quantity DESC, total_revenue DESC, category ASC
+           ) AS ln 
+    FROM estacoes
+)
+SELECT season, category, total_quantity, total_revenue 
+FROM ordenando 
+WHERE ln = 1
+ORDER BY season ASC;
