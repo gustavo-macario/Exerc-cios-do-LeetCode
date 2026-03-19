@@ -427,3 +427,98 @@ SELECT season, category, total_quantity, total_revenue
 FROM ordenando 
 WHERE ln = 1
 ORDER BY season ASC;
+
+
+
+
+-- Driver Efficiency Improvement (First vs Second Half)
+WITH viagens AS (
+    SELECT d.driver_id, d.driver_name, 
+           AVG(CASE WHEN t.trip_date < '2023-07-01' THEN t.distance_km / NULLIF(t.fuel_consumed, 0) END) AS first_half_avg,
+           AVG(CASE WHEN t.trip_date >= '2023-07-01' THEN t.distance_km / NULLIF(t.fuel_consumed, 0) END) AS second_half_avg,
+           COUNT(CASE WHEN t.trip_date < '2023-07-01' THEN 1 END) AS via_1,
+           COUNT(CASE WHEN t.trip_date >= '2023-07-01' THEN 1 END) AS via_2
+    FROM drivers d
+    JOIN trips t ON d.driver_id = t.driver_id
+    WHERE t.trip_date BETWEEN '2023-01-01' AND '2023-12-31'
+    GROUP BY d.driver_id, d.driver_name
+    HAVING via_1 >= 1 AND via_2 >= 1
+)
+SELECT driver_id, driver_name,
+       ROUND(first_half_avg, 2) AS first_half_avg,
+       ROUND(second_half_avg, 2) AS second_half_avg, 
+       ROUND(second_half_avg - first_half_avg, 2) AS efficiency_improvement 
+FROM viagens
+WHERE (second_half_avg - first_half_avg) >= 0
+ORDER BY efficiency_improvement DESC, driver_name ASC;
+
+
+
+-- Dominant User Reaction (Proportional Analysis)
+WITH total_por_reacao AS (
+    SELECT user_id, reaction, COUNT(reaction) AS qtde_por_reacao
+    FROM reactions 
+    GROUP BY user_id, reaction
+),
+total_reacoes AS (
+    SELECT user_id, reaction, qtde_por_reacao,
+           SUM(qtde_por_reacao) OVER (PARTITION BY user_id) AS qtde_total
+    FROM total_por_reacao
+)
+SELECT user_id, reaction AS dominant_reaction, 
+       ROUND(CAST(qtde_por_reacao AS FLOAT) / qtde_total, 2) AS reaction_ratio 
+FROM total_reacoes
+WHERE qtde_total >= 5 
+  AND (CAST(qtde_por_reacao AS FLOAT) / qtde_total) >= 0.6
+ORDER BY reaction_ratio DESC, user_id ASC;
+
+
+
+-- Inventory Imbalance (High Value vs Low Value Stock)
+WITH qtde AS (
+    SELECT i.store_id, s.store_name, s.location, i.product_name, i.price, i.quantity,
+           ROW_NUMBER() OVER (PARTITION BY i.store_id ORDER BY i.price DESC) AS exp_p,
+           ROW_NUMBER() OVER (PARTITION BY i.store_id ORDER BY i.price ASC) AS che_p,
+           COUNT(*) OVER(PARTITION BY i.store_id) AS total
+    FROM stores s
+    JOIN inventory i ON s.store_id = i.store_id
+),
+expensive AS (
+    SELECT store_id, product_name, quantity FROM qtde WHERE exp_p = 1 AND total >= 3
+),
+cheapest AS (
+    SELECT store_id, product_name, quantity FROM qtde WHERE che_p = 1 AND total >= 3
+)
+SELECT e.store_id, q.store_name, q.location, e.product_name AS most_exp_product, 
+       c.product_name AS cheapest_product,
+       ROUND(1.0 * c.quantity / NULLIF(e.quantity, 0), 2) AS imbalance_ratio
+FROM expensive e
+JOIN cheapest c ON e.store_id = c.store_id
+JOIN stores q ON e.store_id = q.store_id
+WHERE e.quantity < c.quantity
+ORDER BY imbalance_ratio DESC;
+
+
+
+-- Churn Risk Analysis (Severe Downgrade Detection)
+WITH planos AS (
+    SELECT user_id, plan_name, event_date, event_type, monthly_amount,
+           SUM(CASE WHEN event_type = 'downgrade' THEN 1 ELSE 0 END) OVER (PARTITION BY user_id) AS qtde_downgrade,
+           LAG(event_type) OVER (PARTITION BY user_id ORDER BY event_date) AS ultimo_event
+    FROM subscription_events
+),
+datas_plans AS (
+    SELECT user_id, MIN(event_date) AS menor_data, MAX(event_date) AS maior_data, 
+           MAX(monthly_amount) AS maior_val
+    FROM subscription_events GROUP BY user_id
+)
+SELECT p.user_id, p.plan_name AS current_plan, p.monthly_amount AS current_monthly_amount, 
+       d.maior_val AS max_historical_amount, DATEDIFF(d.maior_data, d.menor_data) AS days_as_subscriber
+FROM planos p
+JOIN datas_plans d ON p.user_id = d.user_id
+WHERE p.event_type != 'cancel' 
+  AND (p.ultimo_event != 'cancel' OR p.ultimo_event IS NULL)
+  AND p.qtde_downgrade >= 1
+  AND DATEDIFF(d.maior_data, d.menor_data) >= 60
+  AND p.monthly_amount <= (d.maior_val * 0.50)
+ORDER BY days_as_subscriber DESC, user_id ASC;
