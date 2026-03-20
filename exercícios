@@ -522,3 +522,94 @@ WHERE p.event_type != 'cancel'
   AND DATEDIFF(d.maior_data, d.menor_data) >= 60
   AND p.monthly_amount <= (d.maior_val * 0.50)
 ORDER BY days_as_subscriber DESC, user_id ASC;
+
+
+
+/* Aqui abaixo são exercícios do DataLemur */
+
+-- Final Account Balance (FinTech)
+WITH total AS (
+    SELECT account_id,
+           SUM(CASE WHEN transaction_type = 'Deposit' THEN amount END) AS qtde_dep,
+           SUM(CASE WHEN transaction_type = 'Withdrawal' THEN amount END) AS qtde_wit
+    FROM transactions
+    GROUP BY account_id
+)
+SELECT account_id,
+       COALESCE(qtde_dep, 0) - COALESCE(qtde_wit, 0) AS final_balance
+FROM total;
+
+
+
+-- Ad Click-Through Rate (AdTech)
+WITH total AS (
+    SELECT app_id,
+           SUM(CASE WHEN event_type = 'click' THEN 1 ELSE 0 END) AS qtde_click,
+           SUM(CASE WHEN event_type = 'impression' THEN 1 ELSE 0 END) AS qtde_impression
+    FROM events
+    WHERE timestamp BETWEEN '2022-01-01' AND '2022-12-31'
+    GROUP BY app_id
+)
+SELECT app_id,
+       ROUND((100.0 * qtde_click) / NULLIF(qtde_impression, 0), 2) AS ctr
+FROM total;
+
+
+
+-- TikTok Signup Activation (UX Analysis)
+WITH ordenando AS (
+    SELECT e.user_id, t.signup_action,
+           ROW_NUMBER() OVER (PARTITION BY e.user_id ORDER BY t.action_date ASC) AS seq,
+           LAG(t.signup_action) OVER (PARTITION BY e.user_id ORDER BY t.action_date ASC) AS anterior
+    FROM emails e
+    JOIN texts t ON e.email_id = t.email_id
+)
+SELECT user_id FROM ordenando
+WHERE seq <= 2 AND signup_action = 'Confirmed' AND anterior = 'Not confirmed';
+
+
+
+-- Card Launch Success (Banking)
+SELECT card_name, 
+       MAX(issued_amount) - MIN(issued_amount) AS difference
+FROM monthly_cards_issued
+GROUP BY card_name
+ORDER BY difference DESC;
+
+
+
+-- Mean Items Per Order (Weighted Average)
+SELECT ROUND(
+    (SUM(order_occurrences * item_count) / SUM(order_occurrences))::numeric,
+    1
+) AS total
+FROM items_per_order;
+
+
+
+-- Top Profitable Drugs (Profitability)
+SELECT drug,
+       SUM(total_sales - cogs) AS total_profit
+FROM pharmacy_sales 
+GROUP BY drug
+ORDER BY total_profit DESC 
+LIMIT 3;
+
+
+
+-- Pharmacy Loss Analysis (Risk Management)
+SELECT manufacturer, COUNT(DISTINCT drug) AS drug_count,
+       SUM(cogs - total_sales) AS total_loss
+FROM pharmacy_sales
+WHERE total_sales < cogs
+GROUP BY manufacturer
+ORDER BY total_loss DESC;
+
+
+
+-- Executive Sales Reporting (Data Formatting)
+SELECT manufacturer,
+       CONCAT('$', ROUND(SUM(total_sales) / 1000000, 0), ' million') AS sales_mil
+FROM pharmacy_sales
+GROUP BY manufacturer
+ORDER BY SUM(total_sales) DESC, manufacturer ASC;
