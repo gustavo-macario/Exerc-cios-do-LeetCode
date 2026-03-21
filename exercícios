@@ -613,3 +613,34 @@ SELECT manufacturer,
 FROM pharmacy_sales
 GROUP BY manufacturer
 ORDER BY SUM(total_sales) DESC, manufacturer ASC;
+
+
+
+-- Patient Support Analysis (UnitedHealth Group)
+SELECT COUNT(*) AS policy_holder_count
+FROM (
+    SELECT policy_holder_id
+    FROM callers
+    GROUP BY policy_holder_id
+    HAVING COUNT(case_id) >= 3
+) AS maiorque3;
+
+
+
+-- Google Search Queries (Productivity Distribution)
+SELECT 
+    qtde AS unique_queries, 
+    COUNT(*) AS employee_count
+FROM (
+    SELECT 
+        e.employee_id, 
+        COUNT(DISTINCT q.query_id) AS qtde
+    FROM employees e
+    LEFT JOIN queries q 
+        ON e.employee_id = q.employee_id
+        AND q.query_starttime >= '2023-07-01'
+        AND q.query_starttime < '2023-10-01'
+    GROUP BY e.employee_id
+) AS a
+GROUP BY qtde
+ORDER BY qtde ASC;
