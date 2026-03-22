@@ -644,3 +644,14 @@ FROM (
 ) AS a
 GROUP BY qtde
 ORDER BY qtde ASC;
+
+
+
+-- Swapped Food Delivery
+select order_id as corrected_order_id,
+case when order_id % 2 = 1 and lead(item) over (order by order_id) is not null 
+then lead(item) over (order by order_id asc)
+when order_id % 2 = 0 then lag(item) over (order by order_id asc)
+else item
+end
+from orders 
