@@ -525,7 +525,28 @@ ORDER BY days_as_subscriber DESC, user_id ASC;
 
 
 
-/* Aqui abaixo são exercícios do DataLemur */
+--  Human Traffic of Stadium 
+WITH filtrando AS (
+    SELECT id, visit_date, people 
+    FROM Stadium
+    WHERE people >= 100
+),
+filtrando2 AS (
+    SELECT id, visit_date, people,
+           id - ROW_NUMBER() OVER (ORDER BY id) AS dif
+    FROM filtrando
+)
+SELECT id, visit_date, people 
+FROM filtrando2
+WHERE dif IN (
+    SELECT dif FROM filtrando2
+    GROUP BY dif
+    HAVING COUNT(*) >= 3
+);
+
+
+
+-- ----------------------------------------------------- Aqui abaixo são exercícios do DataLemur -------------------------------------------------------------------------------------------------------------------
 
 -- Final Account Balance (FinTech)
 WITH total AS (
@@ -655,3 +676,55 @@ when order_id % 2 = 0 then lag(item) over (order by order_id asc)
 else item
 end
 from orders 
+
+
+
+-- User's Last Transaction (Walmart/eBay)
+-- Obtém a transação mais recente de cada usuário, tratando empates de tempo.
+WITH fil AS (
+    SELECT transaction_date, user_id,
+           DENSE_RANK() OVER (PARTITION BY user_id ORDER BY transaction_date DESC) AS ln
+    FROM user_transactions 
+)
+SELECT transaction_date, user_id, COUNT(*)
+FROM fil 
+WHERE ln = 1
+GROUP BY user_id, transaction_date
+ORDER BY transaction_date ASC;
+
+
+
+-- Mode of Series (eBay - Statistics)
+-- Identifica a moda (valor mais frequente) de uma distribuição.
+WITH fil AS (
+    SELECT item_count AS mode, order_occurrences,
+           DENSE_RANK() OVER (ORDER BY order_occurrences DESC) AS ln
+    FROM items_per_order
+)
+SELECT mode FROM fil WHERE ln = 1;
+
+
+
+-- International Call Percentage (Verizon/Google)
+-- Calcula o percentual de chamadas onde origem e destino são países diferentes.
+SELECT ROUND(
+    100.0 * COUNT(CASE WHEN caller.country_id != receiver.country_id THEN 1 END) 
+    / COUNT(*), 1) AS international_calls_pct
+FROM phone_calls pc
+JOIN phone_info caller ON pc.caller_id = caller.caller_id
+JOIN phone_info receiver ON pc.receiver_id = receiver.caller_id;
+
+
+
+-- Active User Retention (Facebook/Meta)
+-- Métrica de Retenção MoM: Usuários ativos em Julho que também estavam em Junho.
+SELECT 
+    EXTRACT(MONTH FROM event_date) AS mth,
+    COUNT(DISTINCT user_id) AS monthly_active_users
+FROM user_actions
+WHERE EXTRACT(MONTH FROM event_date) = 7
+AND user_id IN (
+    SELECT DISTINCT user_id FROM user_actions 
+    WHERE EXTRACT(MONTH FROM event_date) = 6
+)
+GROUP BY EXTRACT(MONTH FROM event_date);
