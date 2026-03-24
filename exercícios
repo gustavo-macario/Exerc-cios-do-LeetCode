@@ -546,7 +546,52 @@ WHERE dif IN (
 
 
 
+-- Calculate Special Bonus (LeetCode Easy)
+-- Aplica bônus baseado em paridade de ID e inicial do nome.
+SELECT employee_id,
+       CASE WHEN employee_id % 2 = 1 AND name NOT LIKE 'M%' THEN salary 
+            ELSE 0 END AS bonus
+FROM Employees
+ORDER BY employee_id;
+
+
+
+-- Immediate Food Delivery II (LeetCode Medium)
+-- Percentual de pedidos "imediatos" considerando apenas a primeira compra de cada cliente.
+WITH first_orders AS (
+    SELECT customer_id, MIN(order_date) AS first_date
+    FROM Delivery
+    GROUP BY customer_id
+)
+SELECT ROUND(100.0 * SUM(CASE WHEN d.order_date = d.customer_pref_delivery_date THEN 1 ELSE 0 END) 
+       / COUNT(*), 2) AS immediate_percentage
+FROM Delivery d
+JOIN first_orders f ON d.customer_id = f.customer_id AND d.order_date = f.first_date;
+
+
+
+-- Meeting Heavy Weeks (People Analytics)
+WITH fil AS (
+    SELECT e.employee_id, e.employee_name, e.department,
+           YEARWEEK(m.meeting_date, 1) AS num_semana,
+           SUM(duration_hours) AS total
+    FROM employees e 
+    JOIN meetings m ON e.employee_id = m.employee_id   
+    GROUP BY e.employee_id, e.employee_name, YEARWEEK(m.meeting_date, 1)
+)
+SELECT employee_id, employee_name, department,
+       COUNT(num_semana) AS meeting_heavy_weeks 
+FROM fil
+WHERE total > 20
+GROUP BY employee_id, employee_name, department
+HAVING COUNT(num_semana) >= 2
+ORDER BY meeting_heavy_weeks DESC, employee_name;
+
+
+
 -- ----------------------------------------------------- Aqui abaixo são exercícios do DataLemur -------------------------------------------------------------------------------------------------------------------
+
+
 
 -- Final Account Balance (FinTech)
 WITH total AS (
@@ -728,3 +773,36 @@ AND user_id IN (
     WHERE EXTRACT(MONTH FROM event_date) = 6
 )
 GROUP BY EXTRACT(MONTH FROM event_date);
+
+
+
+-- YoY Growth Rate (Wayfair/Amazon)
+WITH anos AS (
+    SELECT product_id, EXTRACT(YEAR FROM transaction_date) AS year,
+           SUM(spend) AS total_spend
+    FROM user_transactions
+    GROUP BY product_id, year
+),
+prev_ano AS (
+    SELECT year, product_id, total_spend AS curr_year_spend,
+           LAG(total_spend) OVER (PARTITION BY product_id ORDER BY year) AS prev_year_spend
+    FROM anos
+)
+SELECT year, product_id, curr_year_spend, prev_year_spend,
+       ROUND((curr_year_spend - prev_year_spend) * 100.0 / NULLIF(prev_year_spend, 0), 2) AS yoy_rate
+FROM prev_ano
+ORDER BY product_id, year;
+
+
+
+-- Median Google Searches (Google Hard)
+WITH fil AS (
+    SELECT searches, num_users,
+           SUM(num_users) OVER (ORDER BY searches) AS running_total,
+           SUM(num_users) OVER () AS total
+    FROM search_frequency
+)
+SELECT ROUND(AVG(searches * 1.0), 1) AS median
+FROM fil
+WHERE running_total >= total / 2.0
+  AND running_total - num_users < total / 2.0 + 1;
