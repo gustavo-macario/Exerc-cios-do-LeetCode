@@ -822,3 +822,12 @@ FROM advertiser
 FULL OUTER JOIN daily_pay
   ON advertiser.user_id = daily_pay.user_id
 ORDER BY user_id
+
+
+
+-- Consecutive Filing Years
+SELECT user_id
+FROM filed_taxes
+WHERE product LIKE 'TurboTax%'
+GROUP BY user_id
+HAVING COUNT(DISTINCT EXTRACT(YEAR FROM filing_date)) >= 3;
