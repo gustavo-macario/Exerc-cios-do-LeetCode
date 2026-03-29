@@ -831,3 +831,15 @@ FROM filed_taxes
 WHERE product LIKE 'TurboTax%'
 GROUP BY user_id
 HAVING COUNT(DISTINCT EXTRACT(YEAR FROM filing_date)) >= 3;
+
+
+
+-- User's Third Transaction
+with usuarios as (
+SELECT user_id, spend, transaction_date,
+row_number() over (PARTITION by user_id order by transaction_date asc) as terceira
+FROM transactions
+)
+select user_id, spend, transaction_date
+from usuarios 
+where terceira = 3
