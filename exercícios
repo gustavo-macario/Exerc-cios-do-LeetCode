@@ -843,3 +843,12 @@ FROM transactions
 select user_id, spend, transaction_date
 from usuarios 
 where terceira = 3
+
+
+
+-- Senior Managers
+select e2.manager_name, count(distinct e2.emp_id) as direct_reportees  from employees e
+join employees e2 on e.manager_id = e2.emp_id
+join employees e3 on e2.manager_id = e3.emp_id
+group by e2.manager_name
+order by direct_reportees desc
