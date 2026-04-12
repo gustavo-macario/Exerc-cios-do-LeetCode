@@ -906,3 +906,26 @@ SELECT
     (curr_mth_calls - prev_mth_calls)/prev_mth_calls,1) AS long_calls_growth_pct
 FROM long_calls
 ORDER BY yr, mth;
+
+
+
+
+-- ----------------------------------------------------- Aqui abaixo são exercícios do Hacker Rank -------------------------------------------------------------------------------------------------------------------
+
+-- Occupations
+with fil as (
+select name,
+       occupation,
+row_number() over (partition by occupation order by name) as ln
+ from OCCUPATIONS
+)
+
+select 
+max(case when occupation = 'Doctor' then name end),
+max(case when occupation = 'Professor' then name end),
+max(case when occupation = 'Singer' then name end),
+max(case when occupation = 'Actor' then name end)
+from fil
+
+group by ln
+order by ln 
