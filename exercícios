@@ -929,3 +929,212 @@ from fil
 
 group by ln
 order by ln 
+
+
+
+-- ===============================================================================================================================================================================================================
+-- Abaixo são exercícios do StrataScratch 
+
+-- ---------------------------------------------------------------------
+-- Exercício 1: Artistas mais frequentes no ranking do Spotify
+-- ---------------------------------------------------------------------
+SELECT 
+    artist, 
+    COUNT(*) AS n_occurences 
+FROM spotify_worldwide_daily_song_ranking
+GROUP BY artist
+ORDER BY n_occurences DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 2: Músicas com mais vezes na posição #1 (Spotify)
+-- ---------------------------------------------------------------------
+SELECT 
+    trackname, 
+    COUNT(*) AS times_top1 
+FROM spotify_worldwide_daily_song_ranking
+WHERE position = 1
+GROUP BY trackname
+ORDER BY times_top1 DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 3: Idade mínima, média e máxima dos atletas olímpicos
+-- ---------------------------------------------------------------------
+SELECT 
+    MIN(age) AS lowest_age, 
+    AVG(age) AS mean_age, 
+    MAX(age) AS highest_age 
+FROM olympics_athletes_events;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 4: Medalhistas (Bronze/Prata) com mais de 40 anos
+-- ---------------------------------------------------------------------
+SELECT DISTINCT 
+    name 
+FROM olympics_athletes_events
+WHERE age > 40 
+  AND medal IN ('Bronze', 'Silver');
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 5: Pedidos de clientes específicos (Jill e Eva)
+-- ---------------------------------------------------------------------
+SELECT 
+    c.first_name, 
+    o.order_date, 
+    o.order_details, 
+    o.total_order_cost 
+FROM orders o
+JOIN customers c ON o.cust_id = c.id
+WHERE c.first_name IN ('Jill', 'Eva')
+ORDER BY c.id;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 6: Departamentos com mais de 5 funcionários
+-- ---------------------------------------------------------------------
+SELECT 
+    department 
+FROM employee
+GROUP BY department
+HAVING COUNT(*) > 5;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 7: Admins contratados fora do 1º trimestre
+-- ---------------------------------------------------------------------
+SELECT 
+    COUNT(*) AS n_admins 
+FROM worker
+WHERE department = 'Admin' 
+  AND MONTH(joining_date) NOT IN (1, 2, 3);
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 8: Funcionários com nome de 6 letras terminando em 'h'
+-- ---------------------------------------------------------------------
+SELECT 
+    * 
+FROM worker
+WHERE LENGTH(first_name) = 6 
+  AND first_name LIKE '%h';
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 9: Rascunhos (drafts) mencionando 'optimism'
+-- ---------------------------------------------------------------------
+SELECT 
+    filename, 
+    contents 
+FROM google_file_store
+WHERE filename LIKE 'draft%' 
+  AND contents LIKE '%optimism%';
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 10: Violações de saúde por ano - 'Roxanne Cafe'
+-- ---------------------------------------------------------------------
+SELECT 
+    YEAR(inspection_date) AS inspection_year, 
+    COUNT(*) AS n_violations
+FROM sf_restaurant_health_violations
+WHERE business_name = 'Roxanne Cafe'
+GROUP BY inspection_year
+ORDER BY n_violations ASC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 11: Inspeções do restaurante 'Glassell Coffee Shop LLC'
+-- ---------------------------------------------------------------------
+SELECT 
+    * 
+FROM los_angeles_restaurant_health_inspections
+WHERE owner_name = 'GLASSELL COFFEE SHOP LLC';
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 12: Inspeções do 'Street Churros' com nota abaixo de 95
+-- ---------------------------------------------------------------------
+SELECT 
+    activity_date, 
+    pe_description 
+FROM los_angeles_restaurant_health_inspections
+WHERE facility_name = 'STREET CHURROS' 
+  AND score < 95;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 13: Empresa com maior lucro (Forbes Global 2010-2014)
+-- ---------------------------------------------------------------------
+SELECT 
+    company, 
+    continent 
+FROM forbes_global_2010_2014
+ORDER BY profits DESC 
+LIMIT 1;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 14: Eventos mais frequentes em dispositivos MacBook Pro
+-- ---------------------------------------------------------------------
+SELECT 
+    event_name, 
+    COUNT(*) AS event_count 
+FROM playbook_events
+WHERE device = 'macbook pro'
+GROUP BY event_name
+ORDER BY event_count DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 15: Proporção de funcionários sem telefone cadastrado
+-- ---------------------------------------------------------------------
+SELECT 
+    AVG(CASE WHEN phone_number IS NULL THEN 1 ELSE 0 END) AS null_phone_ratio 
+FROM techcorp_workforce;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 16: Usuários do app fintech sem telefone cadastrado
+-- ---------------------------------------------------------------------
+SELECT 
+    user_id, 
+    user_name 
+FROM fintech_app_users
+WHERE phone_number IS NULL;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 17: Funcionários de Admin/HR com salário acima de 80k
+-- ---------------------------------------------------------------------
+SELECT 
+    first_name, 
+    last_name, 
+    department, 
+    salary 
+FROM techcorp_workforce
+WHERE salary > 80000 
+  AND department IN ('Admin', 'HR');
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 18: Total de remessas por mês (Amazon)
+-- ---------------------------------------------------------------------
+SELECT 
+    COUNT(*) AS n_shipments,
+    DATE_FORMAT(shipment_date, '%Y-%m') AS date_ym 
+FROM amazon_shipment
+GROUP BY date_ym;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 19: Usuários únicos por cliente e mês
+-- ---------------------------------------------------------------------
+SELECT 
+    client_id, 
+    MONTH(time_id) AS month, 
+    COUNT(DISTINCT user_id) AS users_num 
+FROM fact_events
+GROUP BY client_id, MONTH(time_id);
