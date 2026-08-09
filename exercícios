@@ -1157,6 +1157,108 @@ accepted AS (
     WHERE action = 'accepted'
 )
 
+-- ---------------------------------------------------------------------
+-- Exercício 20: Usuários com 2ª compra em até 7 dias da 1ª (versão A)
+-- ---------------------------------------------------------------------
+WITH dias AS (
+    SELECT *,
+    LAG(created_at) OVER (PARTITION BY user_id ORDER BY created_at) AS pri,
+    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) AS rn
+    FROM amazon_transactions
+)
+SELECT user_id 
+FROM dias 
+WHERE rn = 2
+  AND DATEDIFF(created_at, pri) BETWEEN 1 AND 7;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 21: Usuários com 2ª compra em até 7 dias da 1ª (versão B, com LEAD)
+-- ---------------------------------------------------------------------
+WITH dias AS (
+    SELECT *,
+    LEAD(created_at) OVER (PARTITION BY user_id ORDER BY created_at DESC) AS pri,
+    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) AS rn
+    FROM amazon_transactions
+)
+SELECT DISTINCT user_id
+FROM dias 
+WHERE DATEDIFF(created_at, pri) BETWEEN 1 AND 7;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 22: Ranking de hóspedes por total de mensagens (Airbnb)
+-- Corrigido: SUM() como window function em vez de GROUP BY com SELECT *
+-- ---------------------------------------------------------------------
+WITH num_mess AS (
+    SELECT *,
+    SUM(n_messages) OVER (PARTITION BY id_guest) AS soma
+    FROM airbnb_contacts
+)
+SELECT id_guest,
+DENSE_RANK() OVER (ORDER BY soma DESC) AS ranking,
+soma AS sum_n_messages
+FROM num_mess;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 23: Apartamentos por nacionalidade de anfitriões (menores de 30 anos)
+-- ---------------------------------------------------------------------
+SELECT a.nationality,
+COUNT(DISTINCT au.unit_id) AS apartment_count
+FROM airbnb_hosts a
+JOIN airbnb_units au ON a.host_id = au.host_id
+WHERE a.age < 30
+  AND au.unit_type = 'Apartment'
+GROUP BY a.nationality
+ORDER BY apartment_count DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 24: Inspeções por tipo e categoria de risco (SF)
+-- ---------------------------------------------------------------------
+SELECT inspection_type,
+SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS no_risk_results,
+SUM(CASE WHEN risk_category = 'Low Risk' THEN 1 ELSE 0 END) AS low_risk_results,
+SUM(CASE WHEN risk_category = 'Moderate Risk' THEN 1 ELSE 0 END) AS medium_risk_results,
+SUM(CASE WHEN risk_category = 'High Risk' THEN 1 ELSE 0 END) AS high_risk_results,
+COUNT(*) AS total_inspections
+FROM sf_restaurant_health_violations
+GROUP BY inspection_type
+ORDER BY total_inspections DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 25: Percentual de pedidos de clientes com endereço cadastrado
+-- ---------------------------------------------------------------------
+SELECT 100.0 * COUNT(DISTINCT o.id) / (SELECT COUNT(*) FROM orders) AS pct_com_endereco
+FROM orders o 
+JOIN customers c ON o.cust_id = c.id
+WHERE c.address IS NOT NULL;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 26: Pares de funcionários (mesma localização/gênero, idade e senioridade diferentes)
+-- ---------------------------------------------------------------------
+SELECT f1.id, f2.id 
+FROM facebook_employees f1
+CROSS JOIN facebook_employees f2
+WHERE f1.location = f2.location
+  AND f1.age != f2.age
+  AND f1.gender = f2.gender
+  AND f1.is_senior != f2.is_senior
+  AND f1.id < f2.id;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 27: Pares de anfitrião/hóspede com mesma nacionalidade e gênero (Airbnb)
+-- ---------------------------------------------------------------------
+SELECT DISTINCT ah.host_id, ag.guest_id 
+FROM airbnb_hosts ah
+JOIN airbnb_guests ag ON ah.nationality = ag.nationality 
+  AND ah.gender = ag.gender;
+
+
 --------------------------------------------------------------------------
 10285-acceptance-rate-by-date
 
