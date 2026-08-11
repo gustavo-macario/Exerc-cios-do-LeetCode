@@ -1258,6 +1258,102 @@ FROM airbnb_hosts ah
 JOIN airbnb_guests ag ON ah.nationality = ag.nationality 
   AND ah.gender = ag.gender;
 
+-- =====================================================================
+-- Exercícios Resolvidos - StrataScratch (SQL) - Parte 3
+-- Arquivo consolidado para repositório do GitHub
+-- Obs: os títulos abaixo são descritivos, baseados no conteúdo de cada
+-- query. Recomendo conferir o nome exato de cada exercício direto no
+-- site (StrataScratch) antes de postar, pra garantir fidelidade 100%.
+-- =====================================================================
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 28: Funcionários que ganham mais que seus gerentes
+-- ---------------------------------------------------------------------
+SELECT DISTINCT e.first_name, 
+e.salary
+FROM employee e 
+JOIN employee m ON e.manager_id = m.id
+WHERE e.salary > m.salary;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 29: Funcionário com maior salário por departamento (DENSE_RANK)
+-- ---------------------------------------------------------------------
+WITH ranque AS (
+    SELECT department,
+    first_name,
+    DENSE_RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS rk,
+    salary
+    FROM employee
+)
+SELECT department,
+first_name,
+salary
+FROM ranque
+WHERE rk = 1;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 30: Metas de vendedores sob gerente específico (Salesforce)
+-- OBS: conferir o enunciado original - "target = 400" antes do MAX()
+-- torna a agregação redundante (ver observação no chat)
+-- ---------------------------------------------------------------------
+SELECT first_name,
+MAX(target) AS target
+FROM salesforce_employees
+WHERE manager_id = 13 AND target = 400
+GROUP BY first_name
+ORDER BY target DESC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 31: Variedades de vinho presentes em ambos datasets (Union)
+-- ---------------------------------------------------------------------
+SELECT variety
+FROM winemag_p1
+UNION
+SELECT variety
+FROM winemag_p2
+ORDER BY variety ASC;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 32: Top 5 negócios por total de avaliações (Yelp)
+-- ---------------------------------------------------------------------
+WITH soma AS (
+    SELECT name,
+    SUM(review_count) AS review_count
+    FROM yelp_business
+    GROUP BY name
+),
+ranqueando AS (
+    SELECT name,
+    review_count,
+    RANK() OVER (ORDER BY review_count DESC) AS rk
+    FROM soma
+)
+SELECT name, 
+review_count
+FROM ranqueando
+WHERE rk <= 5;
+
+
+-- ---------------------------------------------------------------------
+-- Exercício 33: Total de avaliações por categoria (Yelp, categorias
+-- concatenadas separadas por ';' explodidas via JSON_TABLE)
+-- ---------------------------------------------------------------------
+SELECT 
+    category, 
+    SUM(review_count) AS total_reviews
+FROM yelp_business,
+JSON_TABLE(
+    CONCAT('["', REPLACE(categories, ';', '","'), '"]'),
+    '$[*]' COLUMNS (category VARCHAR(255) PATH '$')
+) AS jt
+GROUP BY category
+ORDER BY total_reviews DESC;
+
 
 --------------------------------------------------------------------------
 10285-acceptance-rate-by-date
