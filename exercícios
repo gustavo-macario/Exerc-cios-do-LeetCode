@@ -1354,7 +1354,146 @@ JSON_TABLE(
 GROUP BY category
 ORDER BY total_reviews DESC;
 
-
+-- ---------------------------------------------------------------------
+-- Exercício 34: Segundo maior salário da empresa
+-- ---------------------------------------------------------------------
+WITH cte AS (
+    SELECT *,
+    DENSE_RANK() OVER (ORDER BY salary DESC) AS rn
+    FROM employee
+)
+SELECT salary 
+FROM cte 
+WHERE rn = 2;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 35: Sobreviventes do Titanic por classe
+-- ---------------------------------------------------------------------
+SELECT survived,
+SUM(CASE WHEN pclass = 1 THEN 1 ELSE 0 END) AS first_class,
+SUM(CASE WHEN pclass = 2 THEN 1 ELSE 0 END) AS second_class,
+SUM(CASE WHEN pclass = 3 THEN 1 ELSE 0 END) AS third_class
+FROM titanic
+GROUP BY survived;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 36: Funcionários do RH (comparação entre departamentos)
+-- OBS: conferir o enunciado original - as duas metades do UNION ALL
+-- filtram o mesmo department = 'HR', o que só duplica as linhas
+-- (ver observação no chat)
+-- ---------------------------------------------------------------------
+SELECT first_name, department FROM worker
+WHERE department = 'HR'
+UNION ALL
+SELECT first_name, department FROM worker
+WHERE department = 'HR';
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 37: Funcionários com salário duplicado (mesmo valor que outro)
+-- ---------------------------------------------------------------------
+SELECT DISTINCT w1.worker_id, w1.first_name, w1.salary 
+FROM worker w1
+JOIN worker w2 ON w1.salary = w2.salary AND w1.worker_id <> w2.worker_id
+ORDER BY w1.salary DESC;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 38: Contagem de palavras em arquivos (Google File Store, via JSON_TABLE)
+-- ---------------------------------------------------------------------
+SELECT word, COUNT(*) 
+FROM google_file_store g
+JOIN JSON_TABLE(
+    CONCAT('["', REPLACE(REGEXP_REPLACE(g.contents, '[[:punct:]]', ''), ' ', '","'), '"]'),
+    '$[*]' 
+    COLUMNS (word VARCHAR(200) PATH '$')
+) jt
+GROUP BY word;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 39: Relação de amizade bidirecional (Google Friends Network)
+-- ---------------------------------------------------------------------
+SELECT user_id, friend_id FROM google_friends_network 
+UNION
+SELECT friend_id AS user_id, user_id AS friend_id FROM google_friends_network;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 40: Taxa média de reclamações processadas por tipo (Facebook)
+-- ---------------------------------------------------------------------
+WITH cte AS (
+    SELECT type,
+    processed
+    FROM facebook_complaints
+)
+SELECT type,
+ROUND(AVG(processed), 2) AS processed_rate
+FROM cte
+GROUP BY type;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 41: Top 10 músicas da Billboard em 2010
+-- OBS: adicionar "order by year_rank asc" antes do LIMIT - sem isso o
+-- banco não garante que as 10 linhas retornadas sejam as mais bem
+-- colocadas (ver observação no chat)
+-- ---------------------------------------------------------------------
+SELECT DISTINCT song_name,
+group_name,
+year_rank
+FROM billboard_top_100_year_end
+WHERE year = 2010
+ORDER BY year_rank ASC
+LIMIT 10;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 42: Clientes com pelo menos um pedido acima de 100 (EXISTS)
+-- ---------------------------------------------------------------------
+SELECT c.customer_id, c.customer_name 
+FROM online_store_customers c
+WHERE EXISTS (
+    SELECT 1
+    FROM online_store_orders o 
+    WHERE c.customer_id = o.customer_id
+      AND o.amount > 100
+);
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 43: Headcount e folha de pagamento por departamento (contratados após 2020)
+-- Corrigido: alias duplicado "total_payroll" (SUM e AVG usavam o mesmo nome)
+-- ---------------------------------------------------------------------
+SELECT department,
+COUNT(*) AS headcount,
+SUM(salary) AS total_payroll,
+AVG(salary) AS avg_payroll
+FROM techcorp_workforce
+WHERE joining_date > '2020-12-31'
+GROUP BY department
+HAVING COUNT(*) >= 5;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 44: Número de usuários distintos que sinalizaram cada vídeo
+-- ---------------------------------------------------------------------
+SELECT 
+    video_id,
+    COUNT(DISTINCT CONCAT(IFNULL(user_firstname, ''), IFNULL(user_lastname, ''))) AS num_flags
+FROM user_flags
+WHERE flag_id IS NOT NULL
+GROUP BY video_id;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 45: Percentual de usuários ativos nos EUA (Facebook)
+-- ---------------------------------------------------------------------
+SELECT 100.0 * COUNT(*) / (SELECT COUNT(*) FROM fb_active_users) AS us_active_share
+FROM fb_active_users
+WHERE country = 'USA' AND status = 'open';
 --------------------------------------------------------------------------
 10285-acceptance-rate-by-date
 
