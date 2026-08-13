@@ -1495,6 +1495,103 @@ SELECT 100.0 * COUNT(*) / (SELECT COUNT(*) FROM fb_active_users) AS us_active_sh
 FROM fb_active_users
 WHERE country = 'USA' AND status = 'open';
 --------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------
+-- Exercício 46: Duração média de sessão (page_load até page_exit)
+-- ---------------------------------------------------------------------
+WITH filtro AS (
+    SELECT * FROM facebook_web_log
+    WHERE action IN ('page_exit', 'page_load')
+),
+datas AS (
+    SELECT *,
+    LAG(timestamp) OVER (PARTITION BY user_id ORDER BY timestamp) AS t,
+    LAG(action) OVER (PARTITION BY user_id ORDER BY timestamp) AS prev
+    FROM filtro
+)
+SELECT user_id,
+AVG(TIMESTAMPDIFF(SECOND, t, timestamp)) AS avg_session_duration
+FROM datas 
+WHERE prev = 'page_load' AND action = 'page_exit'
+GROUP BY user_id;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 47: Gerentes que ganham menos que 2x a média salarial da equipe
+-- ---------------------------------------------------------------------
+WITH m_salarios AS (
+    SELECT DISTINCT m.manager_empl_id,
+    d.salary
+    FROM map_employee_hierarchy m
+    JOIN dim_employee d ON m.manager_empl_id = d.empl_id 
+),
+e_salarios AS (
+    SELECT e.manager_empl_id,
+    AVG(d.salary) AS media
+    FROM map_employee_hierarchy e
+    JOIN dim_employee d ON e.empl_id = d.empl_id 
+    GROUP BY e.manager_empl_id
+)
+SELECT m.manager_empl_id,
+m.salary,
+media AS empl_avg_salary
+FROM m_salarios m
+JOIN e_salarios e ON m.manager_empl_id = e.manager_empl_id
+WHERE m.salary < (e.media * 2);
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 48: Maior número entre pares (Deloitte)
+-- ---------------------------------------------------------------------
+SELECT d1.number, d2.number,
+CASE WHEN d1.number >= d2.number THEN d1.number 
+WHEN d1.number <= d2.number THEN d2.number END AS max_number
+FROM deloitte_numbers d1
+CROSS JOIN deloitte_numbers d2;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 49: Inspeções por tipo e categoria de risco, deduplicadas
+-- por inspeção (mantendo o risco mais alto de cada inspection_id)
+-- ---------------------------------------------------------------------
+WITH ord AS (
+    SELECT *,
+    CASE WHEN risk_category IS NULL THEN 0
+    WHEN risk_category = 'Low Risk' THEN 1
+    WHEN risk_category = 'Moderate Risk' THEN 2
+    WHEN risk_category = 'High Risk' THEN 3
+    END AS level
+    FROM sf_restaurant_health_violations
+),
+ranque AS (
+    SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY inspection_id ORDER BY level DESC) rn
+    FROM ord
+)
+SELECT inspection_type,
+SUM(CASE WHEN risk_category IS NULL THEN 1 ELSE 0 END) AS no_risk_results,
+SUM(CASE WHEN risk_category = 'Low Risk' THEN 1 ELSE 0 END) AS low_risk_results,
+SUM(CASE WHEN risk_category = 'Moderate Risk' THEN 1 ELSE 0 END) AS medium_risk_results,
+SUM(CASE WHEN risk_category = 'High Risk' THEN 1 ELSE 0 END) AS high_risk_results,
+COUNT(*) AS total_inspections
+FROM ranque
+WHERE rn = 1
+GROUP BY inspection_type;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 50: Projetos do LinkedIn com custo de equipe acima do orçamento
+-- ---------------------------------------------------------------------
+SELECT l.title,
+l.budget,
+CEIL(SUM(le.salary * (DATEDIFF(l.end_date, l.start_date) / 365.0))) AS prorated_employee_expense
+FROM linkedin_projects l
+JOIN linkedin_emp_projects lep ON l.id = lep.project_id
+JOIN linkedin_employees le ON lep.emp_id = le.id
+GROUP BY l.id, l.title, l.budget, l.end_date, l.start_date
+HAVING l.budget < prorated_employee_expense;
+
+
 10285-acceptance-rate-by-date
 
 select s.date, count(a.user_id_sender) * 1.0  / count(*) from sent s 
