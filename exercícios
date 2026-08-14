@@ -1650,6 +1650,54 @@ SELECT
     ) AS nentry
 FROM google_file_store;
 
+with somas as (
+select 
+date_format(created_at, '%Y-%m') as mes,
+sum(value) as s
+from sf_transactions
+
+group by mes
+)
+
+select mes,
+round((s - lag(s) over (order by mes) ) / lag(s) over (order by mes ) * 100.0, 2) as revenue_diff_pct
+from somas
+
+
+
+
+with meseano as (
+select fc.user_id,
+fu.country,
+fc.created_at,
+fc.number_of_comments,
+EXTRACT(YEAR_MONTH FROM created_at) as mes
+from fb_comments_count fc
+join fb_active_users fu on fc.user_id = fu.user_id
+where EXTRACT(YEAR_MONTH FROM created_at)  between 201912 and 202001
+),
+paises as (
+select mes,
+country,
+sum(number_of_comments) as soma
+from meseano
+group by mes, country
+order by mes
+),
+ranque as (
+select *,
+dense_rank() over (partition by mes order by soma desc) as dr
+from paises
+),
+filtro as (
+select distinct r.mes, r.country
+from ranque r
+join ranque r2 on r.country = r2.country
+where r.mes = 201912 and r2.mes = 202001
+and r.dr > r2.dr
+)
+select country from filtro
+
 
 10285-acceptance-rate-by-date
 
