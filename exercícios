@@ -1591,6 +1591,65 @@ JOIN linkedin_employees le ON lep.emp_id = le.id
 GROUP BY l.id, l.title, l.budget, l.end_date, l.start_date
 HAVING l.budget < prorated_employee_expense;
 
+-- ---------------------------------------------------------------------
+-- Exercício 51: Usuários com 3 dias consecutivos de eventos (SF Events)
+-- ---------------------------------------------------------------------
+SELECT DISTINCT user_id 
+FROM (
+    SELECT
+    user_id,
+    DATEDIFF(record_date, LAG(record_date,1) OVER(PARTITION BY user_id ORDER BY record_date)) a,
+    DATEDIFF(record_date, LEAD(record_date,1) OVER(PARTITION BY user_id ORDER BY record_date)) b
+    FROM sf_events
+) a 
+WHERE a = 1 AND b = -1;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 52: Produto mais vendido (em valor) por mês - Online Retail
+-- ---------------------------------------------------------------------
+WITH soma AS (
+    SELECT 
+    YEAR(invoicedate) AS ano,
+    MONTH(invoicedate) AS mes,
+    description,
+    SUM(unitprice * quantity) AS total_paid
+    FROM online_retail
+    WHERE invoiceno NOT LIKE '%C%' AND quantity > 0
+    GROUP BY ano, mes, description
+    ORDER BY ano, mes
+),
+ranke AS (
+    SELECT *,
+    DENSE_RANK() OVER (PARTITION BY ano, mes ORDER BY total_paid DESC) AS dr
+    FROM soma
+)
+SELECT mes AS 'month',
+description,
+total_paid
+FROM ranke
+WHERE dr = 1
+ORDER BY mes;
+ 
+ 
+-- ---------------------------------------------------------------------
+-- Exercício 53: Contagem de ocorrências das palavras "bull" e "bear"
+-- (Google File Store)
+-- ---------------------------------------------------------------------
+SELECT 
+    'bull' AS word,
+    SUM(
+        (LENGTH(LOWER(contents)) - LENGTH(REPLACE(LOWER(contents), ' bull ', ''))) / 6
+    ) AS nentry
+FROM google_file_store
+UNION ALL
+SELECT 
+    'bear' AS word,
+    SUM(
+        (LENGTH(LOWER(contents)) - LENGTH(REPLACE(LOWER(contents), ' bear ', ''))) / 6
+    ) AS nentry
+FROM google_file_store;
+
 
 10285-acceptance-rate-by-date
 
