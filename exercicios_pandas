@@ -1,0 +1,72 @@
+# Exercício 1: Postagens do Facebook com reação 'heart'
+# ---------------------------------------------------------------------
+import pandas as pd
+df = facebook_posts.merge(
+    facebook_reactions,
+    on='post_id',
+    how='inner'
+)
+df = df[df['reaction'] == 'heart'].drop_duplicates(subset='post_id')
+df = df[['post_id', 'poster_x', 'post_text', 'post_keywords', 'post_date']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 2: Salário mais alto por funcionário
+# ---------------------------------------------------------------------
+import pandas as pd
+df = ms_employee_salary.sort_values(by=['id', 'salary'], ascending=[True, False]).drop_duplicates(subset=['id'], keep='first')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 3: Total de custos por cliente
+# ---------------------------------------------------------------------
+import pandas as pd
+df = orders.groupby('cust_id')['total_order_cost'].sum().reset_index()
+df = df.merge(right=customers, left_on='cust_id', right_on='id', how='inner')
+df = df[['cust_id', 'first_name', 'total_order_cost']].sort_values(by='first_name')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 4: Cargo mais bem pago
+# ---------------------------------------------------------------------
+import pandas as pd
+df = worker.merge(right=title, left_on='worker_id', right_on='worker_ref_id', how='inner')
+maior = df['salary'].max()
+df = df[df['salary'] == maior]
+df = df[['worker_title']]
+df = df.rename(columns={'worker_title': 'best_title'})
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 5: Salário comparado à média do departamento
+# ---------------------------------------------------------------------
+import pandas as pd
+df = employee.copy()
+df['avg_salary'] = df.groupby(['department'])['salary'].transform('mean')
+df = df[['department', 'first_name', 'salary', 'avg_salary']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 6: Receita total de vendedores específicos (Samantha e Lisa)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sales_performance.copy()
+df = df[df['salesperson'].isin(['Samantha', 'Lisa'])]
+soma = df['sales_revenue'].sum()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 7: Variedades de vinho por sommelier (sem nulos na região)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = winemag_p2.copy()
+df = df[(df['taster_name'] == 'Roger Voss') & (df['region_1'].notnull())]
+df = df[['variety']].drop_duplicates()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 8: Hora com maior custo de gasolina (Lyft)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = lyft_rides.copy()
+hour = df.groupby('hour')['gasoline_cost'].max().sort_values().tail(1).reset_index()[['hour']]
