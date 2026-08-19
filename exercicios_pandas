@@ -70,3 +70,62 @@ df = df[['variety']].drop_duplicates()
 import pandas as pd
 df = lyft_rides.copy()
 hour = df.groupby('hour')['gasoline_cost'].max().sort_values().tail(1).reset_index()[['hour']]
+
+
+# ---------------------------------------------------------------------
+# Exercício 9: Corridas com chuva no período da manhã (0h às 11h) - Lyft
+# ---------------------------------------------------------------------
+import pandas as pd
+df = lyft_rides.copy()
+df = df[(df['weather'] == 'rainy') & (df['hour'].between(00,11))]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 10: Motoristas com salário fora da faixa de 30k a 70k
+# ---------------------------------------------------------------------
+import pandas as pd
+df = lyft_drivers.copy()
+df = df[(df['yearly_salary'] <= 30000) | (df['yearly_salary'] >= 70000)]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 11: Artistas com mais ocorrências no ranking do Spotify
+# Sugestão: adicionar sort_values para equivaler ao ORDER BY da versão SQL
+# ---------------------------------------------------------------------
+import pandas as pd
+df = spotify_worldwide_daily_song_ranking.copy()
+df = df.groupby('artist').size()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 12: Músicas com mais vezes na posição #1 (Spotify)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = spotify_worldwide_daily_song_ranking.copy()
+df = df[df['position'] == 1] 
+df = (
+    df.groupby('trackname')
+    .size()
+    .reset_index(name='times_top1')
+    .sort_values(by='times_top1', ascending=False)
+)
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 13: Idade mínima, média e máxima dos atletas olímpicos
+# ---------------------------------------------------------------------
+import pandas as pd
+df = olympics_athletes_events.copy()
+res = df['age'].agg(
+    lowest_age='min',
+    mean_age='mean',
+    highest_age='max'
+).to_frame().T
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 14: Medalhistas (Bronze/Prata) com mais de 40 anos
+# ---------------------------------------------------------------------
+import pandas as pd
+df = olympics_athletes_events.copy()
+df = df[(df['age'] > 40) & (df['medal'].isin(['Bronze', 'Silver']))][['name']]
