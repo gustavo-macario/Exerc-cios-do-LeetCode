@@ -129,3 +129,105 @@ res = df['age'].agg(
 import pandas as pd
 df = olympics_athletes_events.copy()
 df = df[(df['age'] > 40) & (df['medal'].isin(['Bronze', 'Silver']))][['name']]
+
+# ---------------------------------------------------------------------
+# Exercício 15: Pedidos de clientes específicos (Jill e Eva)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = customers.copy()
+df = df.merge(right=orders, left_on='id', right_on='cust_id', how='inner')
+df = df[df['first_name'].isin(['Jill', 'Eva'])][['first_name', 'order_date', 'order_details', 'total_order_cost']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 16: Departamentos com mais de 5 funcionários
+# ---------------------------------------------------------------------
+import pandas as pd
+df = employee.copy()
+df = df.groupby('department')['id'].count().reset_index()
+df = df[df['id'] >= 5][['department']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 17: Admins contratados fora do 1º trimestre
+# ---------------------------------------------------------------------
+import pandas as pd
+df = worker.copy()
+df['mes'] = df['joining_date'].dt.month
+df = (df[(df['mes'] >= 4) & (df['department'] == 'Admin')].groupby('department')
+.size()
+.reset_index(name='n_admins')[['n_admins']]
+)
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 18: Funcionários com nome de 6 letras terminando em 'h'
+# ---------------------------------------------------------------------
+import pandas as pd
+df = worker.copy()
+df = df[(df['first_name'].str.len() == 6) & df['first_name'].str.endswith('h')]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 19: Rascunhos (drafts) mencionando 'optimism'
+# ---------------------------------------------------------------------
+import pandas as pd
+df = google_file_store.copy()
+df = df[(df['filename'].str.lower().str.startswith('draft')) & (df['contents'].str.lower().str.contains('optimism'))]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 20: Violações de saúde por ano - 'Roxanne Cafe'
+# Corrigido: .sort_values(by=...) não funciona direto numa Series
+# (ver observação no chat)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sf_restaurant_health_violations.copy()
+df['ano'] = df['inspection_date'].dt.year
+df = df[(df['business_name'] == 'Roxanne Cafe') & (df['violation_id'].notnull())]
+df = df.groupby('ano').size().reset_index(name='n_violations').sort_values(by='ano')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 21: Inspeções do restaurante 'Glassell Coffee Shop LLC'
+# ---------------------------------------------------------------------
+import pandas as pd
+df = los_angeles_restaurant_health_inspections.copy()
+df = df[df['owner_name'] == 'GLASSELL COFFEE SHOP LLC']
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 22: Inspeções do 'Street Churros' com nota abaixo de 95
+# ---------------------------------------------------------------------
+import pandas as pd
+df = los_angeles_restaurant_health_inspections.copy()
+df = df[(df['facility_name'] == 'STREET CHURROS') & (df['score'] < 95)][['activity_date', 'pe_description']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 23: Empresa com maior lucro (Forbes Global 2010-2014)
+# OBS: conferir o enunciado original - filtro por sector == 'Financials'
+# não estava presente na versão SQL equivalente (ver observação no chat)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = forbes_global_2010_2014.copy()
+df = df[df['sector'] == 'Financials']
+df = df.sort_values(by='profits', ascending=False).head(1).reset_index()[['company', 'continent']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 24: Eventos mais frequentes em dispositivos MacBook Pro
+# ---------------------------------------------------------------------
+import pandas as pd
+df = playbook_events.copy()
+df = df[df['device'] == 'macbook pro']
+df = df.groupby('event_name').size().reset_index(name='event_count')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 25: Proporção de funcionários sem telefone cadastrado
+# ---------------------------------------------------------------------
+import pandas as pd
+df = techcorp_workforce.copy()
+ratio = df['phone_number'].isna().mean()
+resultado = pd.DataFrame({'null_phone_ratio': [ratio]})
