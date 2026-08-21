@@ -231,3 +231,36 @@ import pandas as pd
 df = techcorp_workforce.copy()
 ratio = df['phone_number'].isna().mean()
 resultado = pd.DataFrame({'null_phone_ratio': [ratio]})
+
+# ---------------------------------------------------------------------
+# Exercício 26: Usuários do app fintech sem telefone cadastrado
+# ---------------------------------------------------------------------
+import pandas as pd
+df = fintech_app_users.copy()
+df = df[df['phone_number'].isnull()][['user_id', 'user_name']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 27: Funcionários de Admin/HR com salário acima de 80k
+# ---------------------------------------------------------------------
+import pandas as pd
+df = techcorp_workforce.copy()
+df = df[(df['salary'] > 80000) & (df['department'].isin(['HR', 'Admin']))][['first_name', 'last_name', 'department', 'salary']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 28: Total de remessas por mês (Amazon)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = amazon_shipment.copy()
+df['year_month'] = df['shipment_date'].dt.strftime('%Y-%m')
+df = df.groupby('year_month')[['shipment_id', 'sub_id']].size().reset_index(name='count')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 29: Usuários únicos por cliente e mês
+# ---------------------------------------------------------------------
+import pandas as pd
+df = fact_events.copy()
+df['month'] = df['time_id'].dt.month
+df = df.groupby(['client_id', 'month'])['user_id'].nunique().reset_index(name='users_num')
