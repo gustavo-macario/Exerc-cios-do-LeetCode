@@ -264,3 +264,36 @@ import pandas as pd
 df = fact_events.copy()
 df['month'] = df['time_id'].dt.month
 df = df.groupby(['client_id', 'month'])['user_id'].nunique().reset_index(name='users_num')
+
+# ---------------------------------------------------------------------
+# Exercício 30: Percentual de usuários ativos nos EUA (Facebook)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = fb_active_users.copy()
+num = df[(df['country'] == 'USA') & (df['status'] == 'open')].shape[0]
+res = 100.0 * num / df.shape[0]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 31: Maior número entre pares (Deloitte)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = deloitte_numbers.copy()
+df = df.merge(right=deloitte_numbers, how='cross')
+df['max_number'] = df[['number_x', 'number_y']].max(axis=1)
+df
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 32: Número de usuários únicos que sinalizaram cada vídeo
+# OBS: .astype(str) transforma nulo em string 'nan' em vez de vazio -
+# não afeta a contagem, mas pode afetar o texto exibido (ver chat)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = user_flags[user_flags['flag_id'].notnull()].copy()
+df['full_name'] = df['user_firstname'].astype(str) + ' ' + df['user_lastname'].astype(str)
+res = (
+    df.groupby('video_id')['full_name']
+      .nunique()
+      .reset_index(name='num_unique_users')
+)
