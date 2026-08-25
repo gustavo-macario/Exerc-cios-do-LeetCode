@@ -297,3 +297,108 @@ res = (
       .nunique()
       .reset_index(name='num_unique_users')
 )
+
+# ---------------------------------------------------------------------
+# Exercício 33: Headcount e folha de pagamento por departamento (contratados após 2020)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = techcorp_workforce.copy()
+df = df[df['joining_date'] >= '2021-01-01']
+df = df.groupby('department').agg(
+    headcount=('department', 'count'),
+    total_payroll=('salary', 'sum'),
+    avg_salary=('salary', 'mean')
+    ).reset_index()
+df = df[df['headcount'] >= 5]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 34: Clientes com pelo menos um pedido acima de 100
+# ---------------------------------------------------------------------
+import pandas as pd
+df = online_store_orders.copy()
+df = df[df['amount'] > 100]
+df = df.merge(right=online_store_customers, on='customer_id', how='inner')[['customer_id', 'customer_name']].drop_duplicates()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 35: Top 10 músicas da Billboard em 2010
+# ---------------------------------------------------------------------
+import pandas as pd
+df = billboard_top_100_year_end.copy()
+df = df[df['year'] == 2010]
+df = df[['year_rank', 'group_name', 'song_name']].drop_duplicates(subset='song_name').sort_values(by='year_rank').head(10)
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 36: Taxa média de reclamações processadas por tipo (Facebook)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = facebook_complaints.copy()
+df = df.groupby('type').agg(
+    {"processed": "sum", "complaint_id": "size"}
+    ).reset_index()
+df['processed_rate'] = df['processed'] / df['complaint_id']
+df = df[['type', 'processed_rate']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 37: Relação de amizade bidirecional (Google Friends Network)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = google_friends_network.copy()
+df_rev = df[['user_id', 'friend_id']].rename(
+    columns={'user_id': 'friend_id', 'friend_id': 'user_id'}
+    )
+df_sim = (
+    pd.concat([df, df_rev], ignore_index=True)
+    .drop_duplicates()
+    )
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 38: Funcionários com salário duplicado (mesmo valor que outro)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = worker.copy()
+df = df[df.duplicated(subset=['salary'], keep=False)][['worker_id', 'first_name', 'salary']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 39: Funcionários do RH (comparação entre departamentos)
+# OBS: conferir o enunciado original - df e df2 filtram o mesmo
+# department == 'HR', o que só duplica as linhas (ver observação no chat)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = worker.copy()
+df = df[df['department'] == 'HR'][['first_name', 'department']]
+df2 = df[df['department'] == 'HR'][['first_name', 'department']]
+res = pd.concat([df, df2], ignore_index=True)
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 40: Segundo maior salário da empresa
+# ---------------------------------------------------------------------
+import pandas as pd
+df = employee.copy()
+df['rank'] = df['salary'].rank(method='dense', ascending=False)
+df = df[df['rank'] == 2][['salary']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 41: Funcionários que ganham mais que seus gerentes
+# ---------------------------------------------------------------------
+import pandas as pd
+df = employee.copy()
+m = employee.copy()
+df = df.merge(right=m, left_on='id', right_on='manager_id', how='inner')
+df = df[df['salary_x'] < df['salary_y']][['first_name_y', 'salary_y']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 42: Funcionário com maior salário por departamento
+# ---------------------------------------------------------------------
+import pandas as pd
+df = employee.copy()
+df['rank'] = df.groupby('department')['salary'].rank(method='dense', ascending=False)
+df = df[df['rank'] == 1][['department', 'first_name', 'salary']]
