@@ -366,8 +366,6 @@ df = df[df.duplicated(subset=['salary'], keep=False)][['worker_id', 'first_name'
  
 # ---------------------------------------------------------------------
 # Exercício 39: Funcionários do RH (comparação entre departamentos)
-# OBS: conferir o enunciado original - df e df2 filtram o mesmo
-# department == 'HR', o que só duplica as linhas (ver observação no chat)
 # ---------------------------------------------------------------------
 import pandas as pd
 df = worker.copy()
