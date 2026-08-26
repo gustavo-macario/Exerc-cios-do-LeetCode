@@ -472,3 +472,21 @@ df = yelp_reviews.copy()
 df = df.groupby(['business_name', 'review_text'])['cool'].max().sort_values(ascending=False).reset_index()
 df['rank'] = df.groupby('business_name')['cool'].rank(method='dense', ascending=False)
 df = df[df['rank'] == 1][['business_name', 'review_text']]
+
+# ---------------------------------------------------------------------
+# Exercício 50: Finding User Purchases
+# ---------------------------------------------------------------------
+import pandas as pd
+
+amazon_transactions["purchase_date"] = pd.to_datetime(amazon_transactions["created_at"]).dt.date
+daily = amazon_transactions[["user_id", "purchase_date"]].drop_duplicates()
+ranked = daily.sort_values(["user_id", "purchase_date"])
+ranked["rn"] = ranked.groupby("user_id").cumcount() + 1
+first_two = (ranked[ranked["rn"] <= 2]
+             .pivot(index="user_id", columns="rn", values="purchase_date")
+             .reset_index()
+             .rename(columns={1: "first_date", 2: "second_date"}))
+first_two = first_two.dropna(subset=["second_date"])
+first_two["diff"] = (pd.to_datetime(first_two["second_date"]) - pd.to_datetime(first_two["first_date"])).dt.days
+result = first_two[(first_two["diff"] >= 1) & (first_two["diff"] <= 7)][["user_id"]]
+
