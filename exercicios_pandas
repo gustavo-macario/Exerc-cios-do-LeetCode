@@ -400,3 +400,75 @@ import pandas as pd
 df = employee.copy()
 df['rank'] = df.groupby('department')['salary'].rank(method='dense', ascending=False)
 df = df[df['rank'] == 1][['department', 'first_name', 'salary']]
+
+
+# ---------------------------------------------------------------------
+# Exercício 43: Usuários com compras em até 7 dias de intervalo (Amazon)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = amazon_transactions.copy()
+df['created_at'] = pd.to_datetime(df['created_at'])
+df = df.sort_values(by=['user_id', 'created_at'])
+df['diff'] = df.groupby('user_id')['created_at'].diff().dt.days
+res = df[(df['diff'] > 0) & (df['diff'] <= 7)][['user_id']].drop_duplicates().reset_index(drop=True).reset_index()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 44: Ranking de hóspedes por total de mensagens (Airbnb)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = airbnb_contacts.copy()
+df = df.groupby('id_guest')['n_messages'].sum().reset_index()
+df['ranking'] = df['n_messages'].rank(method='dense', ascending=False)
+df = df[['ranking', 'id_guest', 'n_messages']].sort_values(by='ranking')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 45: Apartamentos por nacionalidade de anfitriões (menores de 30 anos)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = airbnb_hosts.copy()
+df = df[df['age'] < 30]
+df = df.merge(right=airbnb_units, on='host_id', how='inner')
+df = df[df['unit_type'] == 'Apartment']
+df = df.groupby('nationality')['unit_id'].nunique().sort_values(ascending=False).reset_index(name='apartment_count')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 46: Percentual de pedidos de clientes com endereço cadastrado
+# ---------------------------------------------------------------------
+import pandas as pd
+df = orders.copy()
+df = df.merge(right=customers, left_on='cust_id', right_on='id')
+percent_shipable = (df['address'].notnull().sum() / len(df)) * 100
+res = pd.DataFrame({'percent_shipable': [percent_shipable]})
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 47: Pares de anfitrião/hóspede com mesma nacionalidade e gênero
+# ---------------------------------------------------------------------
+import pandas as pd
+df = airbnb_hosts.copy()
+df = df.merge(right=airbnb_guests, left_on=['nationality', 'gender'], right_on=['nationality', 'gender'], how='left')
+df = df[['host_id', 'guest_id']].drop_duplicates()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 48: Compensação total média por cargo e sexo (SF Employee)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sf_employee.copy()
+sf_bonus = sf_bonus.groupby('worker_ref_id')['bonus'].sum().reset_index()
+df = df.merge(right=sf_bonus, left_on='id', right_on='worker_ref_id', how='inner')
+df['avg_total_comp'] = df['salary'] + df['bonus']
+res = df.groupby(['employee_title', 'sex'])['avg_total_comp'].mean().reset_index()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 49: Review mais "cool" de cada negócio (Yelp)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = yelp_reviews.copy()
+df = df.groupby(['business_name', 'review_text'])['cool'].max().sort_values(ascending=False).reset_index()
+df['rank'] = df.groupby('business_name')['cool'].rank(method='dense', ascending=False)
+df = df[df['rank'] == 1][['business_name', 'review_text']]
