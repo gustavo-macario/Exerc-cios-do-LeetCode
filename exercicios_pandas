@@ -490,3 +490,39 @@ first_two = first_two.dropna(subset=["second_date"])
 first_two["diff"] = (pd.to_datetime(first_two["second_date"]) - pd.to_datetime(first_two["first_date"])).dt.days
 result = first_two[(first_two["diff"] >= 1) & (first_two["diff"] <= 7)][["user_id"]]
 
+# ---------------------------------------------------------------------
+# Exercício 51: Sobreviventes do Titanic por classe
+# ---------------------------------------------------------------------
+import pandas as pd
+df = titanic.copy()
+df = df.groupby(['pclass', 'survived']).size().reset_index(name='total')
+df['pclass'] = df['pclass'].replace({
+    1: 'first_class', 
+    2: 'second_class', 
+    3: 'third_class'
+})
+df_final = df.pivot(index='survived', columns='pclass', values='total').reset_index()
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 52: Maior meta batida por vendedor sob gerente específico (Salesforce)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = salesforce_employees.copy()
+df = df[df['manager_id'] == 13]
+df['maximo'] = df['target'].max()
+df = df[df['target'] == df['maximo']][['first_name', 'target']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 53: Variedades de vinho presentes em ambos datasets
+# ---------------------------------------------------------------------
+import pandas as pd
+p1 = winemag_p1['variety']
+p2 = winemag_p2['variety']
+result = (
+    pd.concat([p1, p2], axis=0)
+    .drop_duplicates()
+    .sort_values()
+    .reset_index(drop=True)
+)
