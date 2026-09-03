@@ -526,3 +526,79 @@ result = (
     .sort_values()
     .reset_index(drop=True)
 )
+
+
+# ---------------------------------------------------------------------
+# Exercício 54: Pares de funcionários (mesma localização/gênero, senioridade diferente)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = facebook_employees.merge(
+    facebook_employees,
+    on=['location', 'gender'],
+    suffixes=('_x', '_y')
+)
+df = df[
+    (df['id_x'] < df['id_y']) & 
+    (df['is_senior_x'] != df['is_senior_y'])
+][['id_x', 'id_y']]
+df = df.rename(columns={'id_x': 'employee_1', 'id_y': 'employee_2'})
+df
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 55: Inspeções por tipo e categoria de risco (pivotado)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sf_restaurant_health_violations.copy()
+risk_order = {
+    'High Risk': 0,
+    'Moderate Risk': 1,
+    'Low Risk': 2
+}
+df['risk_rank'] = df['risk_category'].map(risk_order).fillna(3).astype(int)
+idx_min = df.groupby('inspection_id')['risk_rank'].idxmin()
+inspections = df.loc[idx_min, ['inspection_id', 'inspection_type', 'risk_category']].copy()
+inspections['risk_category'] = inspections['risk_category'].fillna('No Risk Category')
+counts = (
+    inspections
+    .groupby(['inspection_type', 'risk_category'])['inspection_id']
+    .nunique()
+    .reset_index(name='count')
+)
+pivot = counts.pivot(index='inspection_type', columns='risk_category', values='count').fillna(0)
+for col in ['No Risk Category', 'Low Risk', 'Moderate Risk', 'High Risk']:
+    if col not in pivot.columns:
+        pivot[col] = 0
+pivot = pivot[['No Risk Category', 'Low Risk', 'Moderate Risk', 'High Risk']].astype(int)
+pivot['total'] = pivot.sum(axis=1)
+pivot = pivot.sort_values(by='total', ascending=False).reset_index()
+df_final = pivot
+df_final
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 56: Projetos do LinkedIn com custo de equipe acima do orçamento
+# ---------------------------------------------------------------------
+import pandas as pd
+import numpy as np
+df = linkedin_projects.copy()
+df['dias_total_pro'] = (df['end_date'] - df['start_date']).dt.days
+df = df.merge(right=linkedin_emp_projects, left_on='id', right_on='project_id', how='inner')
+df = df.merge(right=linkedin_employees, left_on='emp_id', right_on='id', how='inner')
+df['prorated_expense'] = (df['salary'] * (df['dias_total_pro'] / 365))
+df_final = df.groupby(['title', 'budget'])['prorated_expense'].sum().reset_index()
+df_final['prorated_expense'] = np.ceil(df_final['prorated_expense']).astype(int)
+df_final = df_final[df_final['prorated_expense'] > df_final['budget']][['title', 'budget', 'prorated_expense']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 57: Taxa de aceitação de pedidos de amizade por dia (Facebook)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = fb_friend_requests.copy()
+df2 = fb_friend_requests.copy()
+df = df[df['action'] == 'sent']
+df2 = df2[df2['action'] == 'accepted']
+df_final = df.merge(right=df2, on=['user_id_sender', 'user_id_receiver'], how='left')
+df_final['is_accepted'] = df_final['action_y'].notna()
+df_final = df_final.groupby('date_x')['is_accepted'].mean().reset_index(name='acceptance_rate')
