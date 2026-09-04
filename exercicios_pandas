@@ -602,3 +602,33 @@ df2 = df2[df2['action'] == 'accepted']
 df_final = df.merge(right=df2, on=['user_id_sender', 'user_id_receiver'], how='left')
 df_final['is_accepted'] = df_final['action_y'].notna()
 df_final = df_final.groupby('date_x')['is_accepted'].mean().reset_index(name='acceptance_rate')
+
+
+# ---------------------------------------------------------------------
+# Exercício 58: Duração média de sessão 
+# ---------------------------------------------------------------------
+import pandas as pd
+df = facebook_web_log.copy()
+df = df[df['action'].isin(['page_load', 'page_exit'])]
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df['day'] = df['timestamp'].dt.date
+load = df[df['action'] == 'page_load'].copy()
+load = load.groupby(['user_id', 'day'])['timestamp'].max().reset_index(name='timestamp')
+exit = df[df['action'] == 'page_exit'].copy()
+exit = exit.groupby(['user_id', 'day'])['timestamp'].min().reset_index(name='timestamp')
+res = load.merge(right=exit, on=['user_id', 'day'], how='inner')
+res = res[res['timestamp_x'] < res['timestamp_y']]
+res['soma'] = (res['timestamp_y'] - res['timestamp_x'])
+res = res.groupby('user_id')['soma'].mean().reset_index(name='avg_session_duration')
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 59: Usuários com 3+ dias consecutivos de eventos
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sf_events.copy()
+df = df.drop_duplicates(subset=['user_id', 'record_date']).sort_values(by=['user_id', 'record_date'])
+df['num'] = df.groupby('user_id').cumcount()
+df['sum'] = df['record_date'] - pd.to_timedelta(df['num'], unit='D')
+grupos = df.groupby(['user_id', 'sum']).size().reset_index(name='dias_consecutivos')
+grupos = grupos[grupos['dias_consecutivos'] >= 3][['user_id']]
