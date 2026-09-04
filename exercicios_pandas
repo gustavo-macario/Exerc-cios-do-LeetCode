@@ -632,3 +632,75 @@ df['num'] = df.groupby('user_id').cumcount()
 df['sum'] = df['record_date'] - pd.to_timedelta(df['num'], unit='D')
 grupos = df.groupby(['user_id', 'sum']).size().reset_index(name='dias_consecutivos')
 grupos = grupos[grupos['dias_consecutivos'] >= 3][['user_id']]
+
+# ---------------------------------------------------------------------
+# Exercício 60: Produto mais vendido (em valor) por mês - Online Retail
+# ---------------------------------------------------------------------
+import pandas as pd
+df = online_retail.copy()
+df = df[df['invoiceno'].str[0] != 'C']
+df['month'] = df['invoicedate'].dt.month
+df['total_paid'] = df['quantity'] * df['unitprice']
+df = df.groupby(['month', 'description'])['total_paid'].sum().reset_index(name='total_paid')
+df = (
+    df.sort_values(by=['month', 'total_paid'], ascending=[True, False])
+    .drop_duplicates(subset=['month'], keep='first')
+    .reset_index(drop=True)
+)
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 61: Países que melhoraram no ranking de comentários
+# (Dez/2019 para Jan/2020) - Facebook
+# ---------------------------------------------------------------------
+import pandas as pd
+df = fb_comments_count.copy()
+df = df[df['created_at'].between('2019-12-01', '2020-01-31')]
+df['month'] = df['created_at'].dt.month
+df = df.merge(right=fb_active_users, on='user_id', how='inner')
+df = df.groupby(['month', 'country'])['number_of_comments'].sum().reset_index(name='total')
+df['rank'] = df.groupby('month')['total'].rank(method='dense', ascending=False)
+jan = df[df['month'] == 1][['country', 'rank']].rename(columns={'rank': 'rank_jan'})
+dez = df[df['month'] == 12][['country', 'rank']].rename(columns={'rank': 'rank_dec'})
+final = dez.merge(right=jan, on='country', how='inner')
+final = final[final['rank_jan'] < final['rank_dec']][['country']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 62: Variação percentual de receita mês a mês (SF Transactions)
+# ---------------------------------------------------------------------
+import pandas as pd
+df = sf_transactions.copy()
+df['year_month'] = df['created_at'].dt.to_period('M')
+df = df.groupby('year_month')['value'].sum().reset_index(name='total').sort_values(by='year_month')
+df['past_month'] = df['total'].shift(1)
+df['revenue_diff_pct'] = (df['total'] - df['past_month']) / df['past_month'] * 100
+df = df[['year_month', 'revenue_diff_pct']]
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 63: Contagem de ocorrências das palavras "bull" e "bear"
+# (versão com regex \b, corrige a limitação da versão anterior)
+# ---------------------------------------------------------------------
+import pandas as pd
+import re
+df = google_file_store.copy()
+n_bull = df['contents'].str.count(r'\bbull\b', flags=re.IGNORECASE).sum()
+n_bear = df['contents'].str.count(r'\bbear\b', flags=re.IGNORECASE).sum()
+final = pd.DataFrame({
+    'word': ['bull', 'bear'],
+    'occurrences': [n_bull, n_bear]
+    })
+ 
+ 
+# ---------------------------------------------------------------------
+# Exercício 64: Contagem de todas as palavras (Google File Store)
+# ---------------------------------------------------------------------
+import pandas as pd
+palavras = (google_file_store['contents']
+    .str.lower()
+    .str.replace(r'[^\w\s]', '', regex=True)
+    .str.split()
+    .explode()
+)
+final = palavras.value_counts().reset_index(name='occurrences').rename(columns={'contents': 'word'})
